@@ -43,7 +43,23 @@ streamlit run app.py
 
 ---
 
-### 方式二：命令行 CLI 操作
+### 方式三：服务器部署 (Docker 推荐)
+本项目包含标准的 Dockerfile，可以一键部署到任意服务器：
+
+**1. 打包镜像**
+```bash
+docker build -t pumpkin-trader:v1 .
+```
+
+**2. 后台运行容器**
+```bash
+docker run -d -p 80:8501 --name pumpkin-app pumpkin-trader:v1
+```
+*部署成功后，直接通过服务器的 IP 地址或绑定的域名即可在浏览器中访问系统。*
+
+---
+
+### 命令行 CLI 操作
 如果你习惯在终端中批量运行回测，本项目同样支持强大的命令行操作。
 
 **运行回测**

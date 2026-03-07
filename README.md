@@ -27,12 +27,26 @@
 
 ## 🚀 快速开始
 
-### 安装依赖
+### 方式一：Web 界面化操作 (推荐)
+本项目提供了一个基于 Streamlit 并且内置 Plotly 交互式图表的精美 Web 界面。你可以直接在网页中上传数据、调整策略参数（资金、手续费率、双均线天数）并查看结果。
+
+**1. 安装依赖**
 ```bash
-pip install pandas numpy matplotlib
+pip install -r requirements.txt
 ```
 
-### 运行回测
+**2. 启动 Web 服务**
+```bash
+streamlit run app.py
+```
+启动后，浏览器会自动打开 `http://localhost:8501`。在左侧面板配置数据源（支持一键生成示例数据或上传你的 CSV 文件），然后点击「运行回测」即可开始分析。
+
+---
+
+### 方式二：命令行 CLI 操作
+如果你习惯在终端中批量运行回测，本项目同样支持强大的命令行操作。
+
+**运行回测**
 ```bash
 # 基本用法（使用示例数据）
 python main.py --create_sample
@@ -43,7 +57,7 @@ python main.py --data your_stock.csv
 # 自定义参数
 python main.py --capital 50000 --fee 0.002 --ma_short 10 --ma_long 30
 
-# 显示图表
+# 显示静态图表
 python main.py --create_sample --plot
 
 # 详细输出

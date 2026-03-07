@@ -75,6 +75,9 @@ class BacktestEngine:
             if col not in self.data.columns:
                 raise ValueError(f"数据中缺少必要列: {col}")
         
+        # 检查是否包含交易比例信号(用于网格交易等部分建仓策略)
+        has_signal_size = 'signal_size' in self.data.columns
+        
         # 如果有日期列，使用日期
         if 'date' in self.data.columns:
             dates = self.data['date'].tolist()
@@ -87,6 +90,12 @@ class BacktestEngine:
             
             # 获取当前数据
             current_signal = self.data['signal'].iloc[i]
+            current_size = self.data['signal_size'].iloc[i] if has_signal_size else 1.0
+            
+            # 如果是 NaN 或者 0 就不交易
+            if pd.isna(current_size) or current_size <= 0:
+                current_size = 1.0 if not has_signal_size else 0.0
+                
             current_close = self.data['close'].iloc[i]
             current_open = self.data['open'].iloc[i]
             
@@ -96,14 +105,12 @@ class BacktestEngine:
             else:
                 execution_price = current_close
             
-            # 处理交易信号
-            if current_signal == 'buy' and self.current_position == 0:
-                # 买入信号
-                self._execute_buy(execution_price, i)
+            # 处理交易信号 (移除仓位限制以支持多次买入/卖出，具体由策略生成size控制)
+            if current_signal == 'buy' and current_size > 0:
+                self._execute_buy(execution_price, i, current_size)
                 
-            elif current_signal == 'sell' and self.current_position == 1:
-                # 卖出信号
-                self._execute_sell(execution_price, i)
+            elif current_signal == 'sell' and current_size > 0 and self.current_shares > 0:
+                self._execute_sell(execution_price, i, current_size)
             
             # 计算当前资产
             current_value = self._calculate_portfolio_value(current_close)
@@ -134,21 +141,22 @@ class BacktestEngine:
         
         return self.data
     
-    def _execute_buy(self, price: float, index: int):
-        """执行买入操作"""
+    def _execute_buy(self, price: float, index: int, size_pct: float = 1.0):
+        """执行买入操作
+        size_pct: 买入资金占当前可用资金的比例 (0.0 ~ 1.0)
+        """
         if price <= 0:
             print(f"⚠️ 第{index}天: 买入价格无效 ({price})")
             return
         
-        # 计算可买入股数（全仓买入）
-        available_cash = self.current_cash
+        # 计算可买入股数（支持部分资金买入）
+        available_cash = self.current_cash * size_pct
         fee = available_cash * self.fee_rate
         investable_cash = available_cash - fee
         
         shares_to_buy = int(investable_cash / price)
         
         if shares_to_buy <= 0:
-            print(f"⚠️ 第{index}天: 资金不足，无法买入 (可用资金: ¥{available_cash:.2f}, 股价: ¥{price:.2f})")
             return
         
         # 计算实际花费
@@ -157,7 +165,7 @@ class BacktestEngine:
         total_cost = cost + total_fee
         
         # 更新状态
-        self.current_shares = shares_to_buy
+        self.current_shares += shares_to_buy
         self.current_cash -= total_cost
         self.current_position = 1
         
@@ -177,26 +185,32 @@ class BacktestEngine:
         if hasattr(self, 'verbose') and self.verbose:
             print(f"✅ 第{index}天: 买入 {shares_to_buy} 股 @ ¥{price:.2f}, 花费 ¥{total_cost:.2f} (含手续费 ¥{total_fee:.2f})")
     
-    def _execute_sell(self, price: float, index: int):
-        """执行卖出操作"""
+    def _execute_sell(self, price: float, index: int, size_pct: float = 1.0):
+        """执行卖出操作
+        size_pct: 卖出持仓股数的比例 (0.0 ~ 1.0)
+        """
         if self.current_shares <= 0:
-            print(f"⚠️ 第{index}天: 没有持仓可卖出")
             return
         
         if price <= 0:
             print(f"⚠️ 第{index}天: 卖出价格无效 ({price})")
             return
         
-        # 计算卖出收入
-        shares_to_sell = self.current_shares
+        # 计算卖出数量
+        shares_to_sell = int(self.current_shares * size_pct)
+        if shares_to_sell <= 0:
+            return
+            
         revenue = shares_to_sell * price
         fee = revenue * self.fee_rate
         net_revenue = revenue - fee
         
         # 更新状态
         self.current_cash += net_revenue
-        self.current_shares = 0
-        self.current_position = 0
+        self.current_shares -= shares_to_sell
+        
+        if self.current_shares == 0:
+            self.current_position = 0
         
         # 记录交易
         trade = {

@@ -14,6 +14,9 @@ from config import INITIAL_CAPITAL, TRANSACTION_FEE, MA_SHORT, MA_LONG
 from data.data_loader import create_sample_data, DataLoader
 from indicators.technical_indicators import TechnicalIndicators
 from strategy.trend_strategy import TrendStrategy
+from strategy.grid_strategy import GridStrategy
+from strategy.mean_reversion_strategy import MeanReversionStrategy
+from strategy.range_trading_strategy import RangeTradingStrategy
 from engine.backtest_engine import BacktestEngine
 from result.metrics import PerformanceMetrics
 
@@ -62,20 +65,45 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-def run_backtest(data_df, capital, fee, ma_short, ma_long):
+def run_backtest(data_df, capital, fee, strategy_name, strategy_params):
     """运行回测逻辑并返回结果和指标"""
     # 计算技术指标
     indicator_calc = TechnicalIndicators(data_df)
+    
+    # 临时覆盖全局配置以计算均线
     import config
     original_ma_short = config.MA_SHORT
     original_ma_long = config.MA_LONG
-    config.MA_SHORT = ma_short
-    config.MA_LONG = ma_long
     
-    data_with_indicators = indicator_calc.calculate_all_indicators()
+    # 动态附加所需的技术指标
+    if strategy_name == "趋势跟踪(双均线)":
+        config.MA_SHORT = strategy_params['ma_short']
+        config.MA_LONG = strategy_params['ma_long']
+        data_with_indicators = indicator_calc.calculate_all_indicators()
+    elif strategy_name == "均值回归(布林带)":
+        data_with_indicators = indicator_calc.data
+        upper, mid, lower = indicator_calc.calculate_bollinger_bands(period=strategy_params['bb_period'])
+        data_with_indicators['BB_upper'] = upper
+        data_with_indicators['BB_mid'] = mid
+        data_with_indicators['BB_lower'] = lower
+    elif strategy_name == "区间交易(RSI)":
+        data_with_indicators = indicator_calc.data
+        period = strategy_params['rsi_period']
+        data_with_indicators[f'RSI_{period}'] = indicator_calc.calculate_rsi(period=period)
+    else: # 网格交易可能不需要复杂的额外指标
+        data_with_indicators = indicator_calc.data
     
     # 生成交易信号
-    strategy = TrendStrategy(data_with_indicators)
+    if strategy_name == "趋势跟踪(双均线)":
+        strategy = TrendStrategy(data_with_indicators)
+    elif strategy_name == "网格交易":
+        strategy = GridStrategy(data_with_indicators, grid_count=strategy_params['grid_count'], grid_step_pct=strategy_params['grid_step'])
+    elif strategy_name == "均值回归(布林带)":
+        strategy = MeanReversionStrategy(data_with_indicators, bb_period=strategy_params['bb_period'])
+    elif strategy_name == "区间交易(RSI)":
+        strategy = RangeTradingStrategy(data_with_indicators, rsi_period=strategy_params['rsi_period'], 
+                                        rsi_low=strategy_params['rsi_low'], rsi_high=strategy_params['rsi_high'])
+        
     data_with_signals = strategy.generate_signals()
     
     # 运行回测
@@ -95,7 +123,7 @@ def run_backtest(data_df, capital, fee, ma_short, ma_long):
     config.MA_SHORT = original_ma_short
     config.MA_LONG = original_ma_long
     
-    return results, trades, metrics
+    return results, trades, metrics, strategy_params
 
 # ================= 侧边栏 =================
 with st.sidebar:
@@ -117,18 +145,38 @@ with st.sidebar:
     fee = fee_pct / 100.0
     
     st.divider()
-    st.markdown("### 📈 均线参数")
-    col_ma1, col_ma2 = st.columns(2)
-    with col_ma1:
-        ma_short = st.number_input("短期", min_value=1, max_value=100, value=int(MA_SHORT), step=1)
-    with col_ma2:
-        ma_long = st.number_input("长期", min_value=5, max_value=250, value=int(MA_LONG), step=1)
+    st.markdown("### 📊 策略选择与参数")
+    strategy_name = st.selectbox("选择交易策略", ["趋势跟踪(双均线)", "网格交易", "均值回归(布林带)", "区间交易(RSI)"])
+    
+    strategy_params = {}
+    if strategy_name == "趋势跟踪(双均线)":
+        col_ma1, col_ma2 = st.columns(2)
+        with col_ma1:
+            strategy_params['ma_short'] = st.number_input("短期均线", min_value=1, max_value=100, value=int(MA_SHORT), step=1)
+        with col_ma2:
+            strategy_params['ma_long'] = st.number_input("长期均线", min_value=5, max_value=250, value=int(MA_LONG), step=1)
+    
+    elif strategy_name == "网格交易":
+        strategy_params['grid_count'] = st.number_input("网格数量 (单边)", min_value=1, max_value=20, value=5, step=1)
+        grid_step_pct = st.number_input("网格步长 (%)", min_value=0.1, max_value=10.0, value=5.0, step=0.5)
+        strategy_params['grid_step'] = grid_step_pct / 100.0
+        
+    elif strategy_name == "均值回归(布林带)":
+        strategy_params['bb_period'] = st.number_input("布林带周期", min_value=5, max_value=100, value=20, step=1)
+        
+    elif strategy_name == "区间交易(RSI)":
+        strategy_params['rsi_period'] = st.number_input("RSI 周期", min_value=2, max_value=50, value=14, step=1)
+        col_r1, col_r2 = st.columns(2)
+        with col_r1:
+            strategy_params['rsi_low'] = st.number_input("买入线(超卖)", min_value=10, max_value=50, value=30, step=5)
+        with col_r2:
+            strategy_params['rsi_high'] = st.number_input("卖出线(超买)", min_value=50, max_value=90, value=70, step=5)
 
     start_btn = st.button("🚀 运行回测", use_container_width=True, type="primary")
 
 # ================= 主页面 =================
 st.markdown('<h1 class="main-header">📈 量化交易回测系统</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">基于双均线趋势跟踪策略的可视化回测分析平台</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">支持多种经典量化策略的可视化回测分析平台</p>', unsafe_allow_html=True)
 
 if start_btn:
     with st.spinner("⏳ 正在进行数据演算与图表渲染，请稍候..."):
@@ -151,7 +199,7 @@ if start_btn:
                 data_df = data_loader.prepare_data()
             
             # 2. 运行回测
-            results, trades, metrics = run_backtest(data_df, capital, fee, ma_short, ma_long)
+            results, trades, metrics, used_params = run_backtest(data_df, capital, fee, strategy_name, strategy_params)
             
             # 3. 结果展示 - 核心指标卡片
             st.markdown("### 📊 核心表现摘要")
@@ -206,20 +254,28 @@ if start_btn:
                                        yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'))
                 st.plotly_chart(fig_equity, use_container_width=True)
 
-                st.markdown("#### K线图与均线信号")
+                st.markdown(f"#### K线图与信号指标 ({strategy_name})")
                 # 绘制带双均线的蜡烛图
                 fig_candle = go.Figure()
                 fig_candle.add_trace(go.Candlestick(x=results['date'],
                                                   open=results['open'], high=results['high'],
                                                   low=results['low'], close=results['close'],
                                                   name='K线'))
-                # 添加均线
-                ma_s_col = f'MA{ma_short}'
-                ma_l_col = f'MA{ma_long}'
-                if ma_s_col in results.columns:
-                    fig_candle.add_trace(go.Scatter(x=results['date'], y=results[ma_s_col], mode='lines', name=f'MA{ma_short}', line=dict(color='#f39c12', width=1.5)))
-                if ma_l_col in results.columns:
-                    fig_candle.add_trace(go.Scatter(x=results['date'], y=results[ma_l_col], mode='lines', name=f'MA{ma_long}', line=dict(color='#9b59b6', width=1.5)))
+                
+                # 动态添加策略特定的参考线
+                if strategy_name == "趋势跟踪(双均线)":
+                    ma_s_col = f"MA{used_params['ma_short']}"
+                    ma_l_col = f"MA{used_params['ma_long']}"
+                    if ma_s_col in results.columns:
+                        fig_candle.add_trace(go.Scatter(x=results['date'], y=results[ma_s_col], mode='lines', name=f'短期均线', line=dict(color='#f39c12', width=1.5)))
+                    if ma_l_col in results.columns:
+                        fig_candle.add_trace(go.Scatter(x=results['date'], y=results[ma_l_col], mode='lines', name=f'长期均线', line=dict(color='#9b59b6', width=1.5)))
+                
+                elif strategy_name == "均值回归(布林带)":
+                    if 'BB_upper' in results.columns:
+                        fig_candle.add_trace(go.Scatter(x=results['date'], y=results['BB_upper'], mode='lines', name='布林带上轨', line=dict(color='rgba(255, 99, 132, 0.7)', dash='dash')))
+                        fig_candle.add_trace(go.Scatter(x=results['date'], y=results['BB_lower'], mode='lines', name='布林带下轨', line=dict(color='rgba(46, 204, 113, 0.7)', dash='dash'), fill='tonexty', fillcolor='rgba(128,128,128,0.1)'))
+                        fig_candle.add_trace(go.Scatter(x=results['date'], y=results['BB_mid'], mode='lines', name='布林带中轨', line=dict(color='rgba(52, 152, 219, 0.7)')))
                 
                 fig_candle.update_layout(height=500, margin=dict(l=0, r=0, t=30, b=0),
                                        xaxis_rangeslider_visible=False, hovermode="x unified",
@@ -227,6 +283,17 @@ if start_btn:
                                        xaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
                                        yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'))
                 st.plotly_chart(fig_candle, use_container_width=True)
+                
+                # 若为 RSI 策略，绘制独立的 RSI 指标图
+                if strategy_name == "区间交易(RSI)" and f"RSI_{used_params['rsi_period']}" in results.columns:
+                    rsi_col = f"RSI_{used_params['rsi_period']}"
+                    fig_rsi = go.Figure()
+                    fig_rsi.add_trace(go.Scatter(x=results['date'], y=results[rsi_col], mode='lines', name='RSI', line=dict(color='#8e44ad', width=2)))
+                    fig_rsi.add_hline(y=used_params['rsi_high'], line_dash="dash", line_color="red", annotation_text="超买区")
+                    fig_rsi.add_hline(y=used_params['rsi_low'], line_dash="dash", line_color="green", annotation_text="超卖区")
+                    fig_rsi.update_layout(height=250, title="RSI 指标图", margin=dict(l=0, r=0, t=30, b=0), 
+                                          plot_bgcolor='rgba(0,0,0,0)', yaxis=dict(range=[0, 100]))
+                    st.plotly_chart(fig_rsi, use_container_width=True)
                 
             with tab2:
                 if trades.empty:

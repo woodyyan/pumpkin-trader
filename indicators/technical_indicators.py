@@ -76,6 +76,66 @@ class TechnicalIndicators:
         
         return atr
     
+    def calculate_rsi(self, period: int = 14, price_col: Optional[str] = None) -> pd.Series:
+        """
+        计算 RSI (Relative Strength Index)
+        
+        Parameters:
+        -----------
+        period : int
+            RSI计算周期
+        price_col : str, optional
+            价格列名，默认为self.price_col
+            
+        Returns:
+        --------
+        pd.Series
+            RSI序列
+        """
+        col_name = price_col or self.price_col
+        delta = self.data[col_name].diff()
+        
+        # 使用平滑移动平均线计算RSI更为准确
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        
+        # 处理 loss=0 的情况（RSI=100）
+        rsi = rsi.fillna(100).where(loss != 0, 100)
+        # 前 period 天设为 NaN
+        rsi.iloc[:period] = np.nan
+        
+        return rsi
+
+    def calculate_bollinger_bands(self, period: int = 20, std_dev: float = 2.0, price_col: Optional[str] = None):
+        """
+        计算布林带 (Bollinger Bands)
+        
+        Parameters:
+        -----------
+        period : int
+            均线周期
+        std_dev : float
+            标准差倍数
+        price_col : str, optional
+            价格列名
+            
+        Returns:
+        --------
+        Tuple[pd.Series, pd.Series, pd.Series]
+            (上限, 中轨, 下限)
+        """
+        col_name = price_col or self.price_col
+        mid_band = self.data[col_name].rolling(window=period).mean()
+        std = self.data[col_name].rolling(window=period).std()
+        
+        upper_band = mid_band + (std * std_dev)
+        lower_band = mid_band - (std * std_dev)
+        
+        return upper_band, mid_band, lower_band
+
     def calculate_all_indicators(self) -> pd.DataFrame:
         """
         计算所有指标

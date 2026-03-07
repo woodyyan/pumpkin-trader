@@ -9,4 +9,5 @@ matplotlib>=3.7.0
 # plotly>=5.14.0         # 交互式图表
 # ta-lib>=0.4.0          # 技术指标库
 # yfinance>=0.2.0        # 股票数据下载
-# tushare>=1.2.0         # A股数据接口
+# tushare>=1.2.0         # A股数据接口plotly>=5.18.0
+streamlit>=1.30.0

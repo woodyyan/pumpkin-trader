@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from config import INITIAL_CAPITAL, TRANSACTION_FEE, MA_SHORT, MA_LONG
 from data.data_loader import create_sample_data, DataLoader
+from data.scripts.akshare_loader import fetch_stock_data
 from indicators.technical_indicators import TechnicalIndicators
 from strategy.trend_strategy import TrendStrategy
 from strategy.grid_strategy import GridStrategy
@@ -132,11 +133,19 @@ with st.sidebar:
     st.divider()
     
     st.markdown("### 📁 数据源")
-    data_source = st.radio("选择数据", ["生成示例数据", "上传CSV文件"], label_visibility="collapsed")
+    data_source = st.radio("选择数据", ["在线下载(A股/港股)", "生成示例数据", "上传CSV文件"], label_visibility="collapsed")
     uploaded_file = None
     if data_source == "上传CSV文件":
         uploaded_file = st.file_uploader("上传您的股票数据 (CSV)", type="csv")
         st.caption("CSV需包含列: date, open, high, low, close, volume")
+    elif data_source == "在线下载(A股/港股)":
+        ticker = st.text_input("股票代码", value="600519", help="A股请用6位数字(如600519)，港股请用5位数字(如00700)")
+        col_d1, col_d2 = st.columns(2)
+        import datetime
+        with col_d1:
+            start_date = st.date_input("开始日期", value=datetime.date(2020, 1, 1))
+        with col_d2:
+            end_date = st.date_input("结束日期", value=datetime.date.today())
     
     st.divider()
     st.markdown("### 💰 资金与费用")
@@ -182,7 +191,12 @@ if start_btn:
     with st.spinner("⏳ 正在进行数据演算与图表渲染，请稍候..."):
         try:
             # 1. 获取数据
-            if data_source == "生成示例数据":
+            if data_source == "在线下载(A股/港股)":
+                st.info(f"正在从网络下载 {ticker} 的历史数据，请稍候...")
+                data_df = fetch_stock_data(ticker, start_date, end_date)
+                if data_df is None or data_df.empty:
+                    st.stop()
+            elif data_source == "生成示例数据":
                 temp_path = "data/temp_sample.csv"
                 os.makedirs("data", exist_ok=True)
                 create_sample_data(temp_path)

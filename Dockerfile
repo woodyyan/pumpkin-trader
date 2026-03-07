@@ -1,5 +1,5 @@
-# 使用轻量的 Python 镜像
-FROM python:3.9-slim
+# 恢复为官方镜像
+FROM python:3.9-slim-bullseye
 
 # 设置工作目录
 WORKDIR /app

@@ -192,10 +192,34 @@ if start_btn:
         try:
             # 1. 获取数据
             if data_source == "在线下载(A股/港股)":
-                st.info(f"正在从网络下载 {ticker} 的历史数据，请稍候...")
-                data_df = fetch_stock_data(ticker, start_date, end_date)
+                # 显示下载进度和状态
+                status_container = st.empty()
+                progress_bar = st.progress(0)
+                
+                status_container.info(f"📡 正在连接数据源获取 {ticker} ({start_date} 至 {end_date}) 的数据...")
+                
+                # 模拟一个进度条推进（因为真实下载是阻塞的，我们可以通过独立的占位符去更新状态）
+                for percent_complete in range(1, 90, 5):
+                    import time
+                    time.sleep(0.02)
+                    progress_bar.progress(percent_complete)
+                
+                try:
+                    data_df, source_name = fetch_stock_data(ticker, start_date, end_date)
+                    progress_bar.progress(100)
+                    status_container.success(f"✅ 成功通过 [{source_name}] 下载 {ticker} 数据，共 {len(data_df)} 条记录。开始计算...")
+                    time.sleep(1.0) # 给用户一点时间看到成功消息
+                    # 清理进度条以免影响界面美观
+                    progress_bar.empty()
+                    status_container.empty()
+                except Exception as e:
+                    progress_bar.empty()
+                    status_container.error(f"❌ 数据下载失败: {str(e)}")
+                    st.stop()
+                    
                 if data_df is None or data_df.empty:
                     st.stop()
+                    
             elif data_source == "生成示例数据":
                 temp_path = "data/temp_sample.csv"
                 os.makedirs("data", exist_ok=True)

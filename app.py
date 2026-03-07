@@ -20,7 +20,7 @@ from strategy.range_trading_strategy import RangeTradingStrategy
 from engine.backtest_engine import BacktestEngine
 from result.metrics import PerformanceMetrics
 
-st.set_page_config(page_title="单股票回测系统", page_icon="📈", layout="wide")
+st.set_page_config(page_title="南瓜交易系统", page_icon="🎃", layout="wide")
 
 # ================= UI 样式美化 =================
 st.markdown("""
@@ -175,7 +175,7 @@ with st.sidebar:
     start_btn = st.button("🚀 运行回测", use_container_width=True, type="primary")
 
 # ================= 主页面 =================
-st.markdown('<h1 class="main-header">📈 量化交易回测系统</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">🎃 南瓜交易系统 (Pumpkin Trader)</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">支持多种经典量化策略的可视化回测分析平台</p>', unsafe_allow_html=True)
 
 if start_btn:

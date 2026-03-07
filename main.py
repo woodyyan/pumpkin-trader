@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-单股票回测系统 - 主程序
+南瓜交易系统 - 主程序
 系统分为5个模块：数据、指标、策略、回测、结果
 """
 
@@ -22,7 +22,7 @@ from result.metrics import PerformanceMetrics
 
 def parse_arguments():
     """解析命令行参数"""
-    parser = argparse.ArgumentParser(description='单股票回测系统')
+    parser = argparse.ArgumentParser(description='南瓜交易系统 (Pumpkin Trader)')
     
     parser.add_argument('--data', type=str, default=DATA_PATH,
                        help=f'股票数据文件路径 (默认: {DATA_PATH})')
@@ -49,7 +49,7 @@ def parse_arguments():
 def main():
     """主函数"""
     print("="*70)
-    print("🚀 单股票回测系统 v1.0")
+    print("🚀 南瓜交易系统 v1.0")
     print("="*70)
     
     # 解析参数

@@ -1,6 +1,6 @@
-# 📈 单股票回测系统 (Single Stock Backtest System)
+# 📈 南瓜交易系统 (Pumpkin Trader)
 
-一个模块化的Python单股票回测系统，实现完整的回测流程。
+一个模块化的Python量化回测系统，实现完整的回测流程并支持多种经典交易策略。
 
 ## 🎯 功能特性
 
@@ -80,9 +80,10 @@ python main.py --create_sample --verbose
 ## 📁 项目结构
 
 ```
-stock_backtest_system/
+pumpkin-trader/
 ├── config.py                    # 配置文件
-├── main.py                      # 主程序
+├── main.py                      # 命令行主程序
+├── app.py                       # Web 界面主程序
 ├── README.md                    # 项目文档
 ├── data/
 │   ├── __init__.py
@@ -93,7 +94,10 @@ stock_backtest_system/
 │   └── technical_indicators.py # 指标模块
 ├── strategy/
 │   ├── __init__.py
-│   └── trend_strategy.py       # 策略模块
+│   ├── trend_strategy.py       # 趋势跟踪策略
+│   ├── grid_strategy.py        # 网格交易策略
+│   ├── mean_reversion_strategy.py # 均值回归策略
+│   └── range_trading_strategy.py  # 区间交易策略
 ├── engine/
 │   ├── __init__.py
 │   └── backtest_engine.py      # 回测引擎

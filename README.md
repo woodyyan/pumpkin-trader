@@ -27,8 +27,22 @@
 
 ## 🚀 快速开始
 
-### 方式一：Web 界面化操作 (推荐)
-本项目提供了一个基于 Streamlit 并且内置 Plotly 交互式图表的精美 Web 界面。你可以直接在网页中上传数据、调整策略参数（资金、手续费率、双均线天数）并查看结果。
+### 方式一：一键部署安装 (最简单)
+如果你正在使用 Linux 或 macOS，可以使用我们提供的一键安装脚本，它会自动下载代码、构建 Docker 镜像并启动服务：
+
+```bash
+# 下载并执行安装脚本 (需要预先安装好 Docker)
+curl -fsSL https://raw.githubusercontent.com/yansongbai/pumpkin-trader/master/install.sh | bash
+
+# 或者你可以自定义安装目录 (如安装到 /opt/pumpkin-trader)
+curl -fsSL https://raw.githubusercontent.com/yansongbai/pumpkin-trader/master/install.sh | bash -s -- /opt/pumpkin-trader
+```
+*安装完成后，直接在浏览器中访问 `http://localhost:8501` 即可使用。*
+
+---
+
+### 方式二：本地源码开发 (推荐)
+本项目提供了一个基于 Streamlit 并且内置 Plotly 交互式图表的精美 Web 界面。你可以直接在网页中获取数据、调整策略参数并查看结果。
 
 **1. 安装依赖**
 ```bash

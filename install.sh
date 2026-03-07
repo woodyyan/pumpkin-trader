@@ -53,8 +53,8 @@ setup_and_fetch() {
         fi
     else
         echo -e "${BLUE}正在克隆代码仓库...${NC}"
-        # 替换为你的真实 Git 仓库地址
-        git clone https://github.com/your-username/pumpkin-trader.git "$INSTALL_DIR"
+        #  Git 仓库地址
+        git clone https://github.com/woodyyan/pumpkin-trader.git "$INSTALL_DIR"
         cd "$INSTALL_DIR"
     fi
     echo -e "${GREEN}✔ 代码准备完成${NC}"

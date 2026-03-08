@@ -32,10 +32,10 @@
 
 ```bash
 # 下载并执行安装脚本 (需要预先安装好 Docker)
-curl -fsSL https://raw.githubusercontent.com/yansongbai/pumpkin-trader/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/woodyyan/pumpkin-trader/master/install.sh | bash
 
 # 或者你可以自定义安装目录 (如安装到 /opt/pumpkin-trader)
-curl -fsSL https://raw.githubusercontent.com/yansongbai/pumpkin-trader/master/install.sh | bash -s -- /opt/pumpkin-trader
+curl -fsSL https://raw.githubusercontent.com/woodyyan/pumpkin-trader/master/install.sh | bash -s -- /opt/pumpkin-trader
 ```
 *安装完成后，直接在浏览器中访问 `http://localhost:8501` 即可使用。*
 

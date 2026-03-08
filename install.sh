@@ -63,11 +63,18 @@ setup_and_fetch() {
 # 3. 构建 Docker 镜像
 build_image() {
     echo -e "${BLUE}▶ 开始构建 Docker 镜像 (可能需要几分钟，请耐心等待)...${NC}"
+    echo -e "${YELLOW}▶ 启用详细日志模式，这会输出每一步的构建详情和完整报错信息...${NC}"
     
-    if docker build -t pumpkin-trader:latest .; then
+    if DOCKER_BUILDKIT=1 docker build --progress=plain -t pumpkin-trader:latest .; then
         echo -e "${GREEN}✔ 镜像构建成功${NC}"
     else
-        echo -e "${RED}错误: Docker 镜像构建失败。请检查网络或 Dockerfile。${NC}"
+        echo -e "${RED}=================================================${NC}"
+        echo -e "${RED}错误: Docker 镜像构建失败！请查看上方的详细报错信息。${NC}"
+        echo -e "${YELLOW}常见问题排查建议:${NC}"
+        echo -e "  1. 网络问题: 检查服务器是否能正常访问外部网络，如下载 pip 依赖等"
+        echo -e "  2. 权限问题: 确保当前用户有权限执行 docker 命令"
+        echo -e "  3. 磁盘空间: 执行 'df -h' 检查磁盘空间是否充足"
+        echo -e "${RED}=================================================${NC}"
         exit 1
     fi
 }
